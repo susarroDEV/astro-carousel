@@ -1,0 +1,26 @@
+---
+interface Props {
+  animationTimingFunction?: 'ease-in' | 'ease-out' | 'ease-in-out' | 'linear' 
+  animationType?: 'slide' | 'fade' | 'pop' | 'flip' | 'rotate' | 'bounce' | 'zoom' | 'spin'
+  autoPlay?: boolean
+  axis?: 'x' | 'y'
+  customArrowLeft?: any
+  customArrowRight?: any
+  height?: string
+  infiniteLoop?: boolean
+  interval?: number
+  onChange?: (index: number) => void
+  onClickItem?: (index: number) => void
+  selectedItem?: number
+  showArrows?: boolean
+  showDots?: boolean
+  thumbHeight?: number
+  thumbWidth?: number
+  transitionTime?: number
+  useKeyboardArrows?: boolean
+  width?: string
+}
+
+let { animationTimingFunction, animationType, autoPlay, axis, customArrowLeft, customArrowRight, height, infiniteLoop, interval, onChange, onClickItem, selectedItem, showArrows, showDots, thumbHeight, thumbWidth, transitionTime, useKeyboardArrows, width }: Props = Astro.props
+---
+
