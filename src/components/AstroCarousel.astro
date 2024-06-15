@@ -1,26 +1,230 @@
 ---
+import '../styles/arrowStyles.css'
+import '../styles/containerStyles.css'
+import LeftArrow from './LeftArrow.astro'
+import RightArrow from './RightArrow.astro'
+
 interface Props {
-  animationTimingFunction?: 'ease-in' | 'ease-out' | 'ease-in-out' | 'linear' 
-  animationType?: 'slide' | 'fade' | 'pop' | 'flip' | 'rotate' | 'bounce' | 'zoom' | 'spin'
+  animationTimingFunction?: 'ease-in' | 'ease-out' | 'ease-in-out' | 'linear'
+  animationType?: 'slide' | 'fade'
   autoPlay?: boolean
   axis?: 'x' | 'y'
-  customArrowLeft?: any
-  customArrowRight?: any
   height?: string
   infiniteLoop?: boolean
   interval?: number
-  onChange?: (index: number) => void
-  onClickItem?: (index: number) => void
   selectedItem?: number
   showArrows?: boolean
   showDots?: boolean
-  thumbHeight?: number
-  thumbWidth?: number
   transitionTime?: number
   useKeyboardArrows?: boolean
   width?: string
 }
 
-let { animationTimingFunction, animationType, autoPlay, axis, customArrowLeft, customArrowRight, height, infiniteLoop, interval, onChange, onClickItem, selectedItem, showArrows, showDots, thumbHeight, thumbWidth, transitionTime, useKeyboardArrows, width }: Props = Astro.props
+let {
+  animationTimingFunction = 'linear',
+  animationType = 'slide',
+  autoPlay = false,
+  axis = 'x',
+  height = '100%',
+  infiniteLoop = false,
+  interval = 5000,
+  selectedItem = 1,
+  showArrows = true,
+  showDots = true,
+  transitionTime = 500,
+  useKeyboardArrows = true,
+  width = '100%',
+  ...props
+}: Props = Astro.props
 ---
 
+<div id="carousel" class="carousel-container" style={`width: ${width}; height: ${height};`}>
+  <div id="input-container" style="display: none;">
+    <slot />
+  </div>
+  <div id="output-container" class="carousel-slide">
+  </div>
+  {showArrows &&  
+    <div id="arrows">
+      <button id="left-arrow" aria-label="Previous">
+        <LeftArrow />
+      </button>
+      <button id="right-arrow" aria-label="Next">
+        <RightArrow />
+      </button>
+    </div>
+  }
+  {showDots && 
+    <div id="dots"></div>
+  }
+  <div id="data" class=`${autoPlay}, ${infiniteLoop}, ${showArrows}, ${showDots}, ${useKeyboardArrows}, ${animationTimingFunction}, ${animationType}, ${axis}, ${height}, ${width}, ${interval}, ${selectedItem}, ${transitionTime}`/>
+</div>
+
+<script type="module">
+  document.addEventListener('DOMContentLoaded', () => {
+    const leftArrow = document.getElementById('left-arrow')
+    const rightArrow = document.getElementById('right-arrow')
+    const inputContainer = document.getElementById('input-container')
+    const outputContainer = document.getElementById('output-container')
+    const dotsContainer = document.getElementById('dots')
+    
+    const data = document.getElementById('data').classList.value.split(', ')
+    const { autoPlay, infiniteLoop, showArrows, showDots, useKeyboardArrows, animationTimingFunction, animationType, axis, height, selectedItem, width, interval, transitionTime } = {
+      autoPlay: data[0] === 'true',
+      infiniteLoop: data[1] === 'true',
+      showArrows: data[2] === 'true',
+      showDots: data[3] === 'true',
+      useKeyboardArrows: data[4] === 'true',
+      animationTimingFunction: data[5],
+      animationType: data[6],
+      axis: data[7],
+      height: data[8],
+      width: data[9],
+      interval: parseInt(data[10]),
+      selectedItem: parseInt(data[11]),
+      transitionTime: parseInt(data[12]),
+    }
+
+    if (axis === 'y') {
+      inputContainer.style.flexDirection = 'column'
+      outputContainer.style.flexDirection = 'column'
+    }
+
+    const getChildren = (container) => Array.from(container.children)
+
+    const initializeChildren = () => {
+      const inputChildren = getChildren(inputContainer)
+      let outputChildren
+      
+      inputChildren.forEach((child, index) => {
+        child.classList.remove('active-child')
+        
+        if (index === selectedItem - 1) {
+          child.classList.add('active-child')
+          outputChildren = [
+            inputChildren[inputChildren.length - 1].cloneNode(true),
+            child.cloneNode(true),
+            child.nextElementSibling ? child.nextElementSibling.cloneNode(true) : inputChildren[0].cloneNode(true)
+          ]
+        }
+      })
+      if (outputChildren) {
+        outputChildren.forEach((child) => {
+          outputContainer.appendChild(child)
+        })
+        setTransitionStyle()
+      }
+    }
+
+    const moveToSibling = (direction) => {
+      const inputChildren = getChildren(inputContainer)
+      const activeChild = inputChildren.find(child => child.classList.contains('active-child'))
+      const activeIndex = inputChildren.indexOf(activeChild)
+      
+      let newActiveIndex
+      let outputChildren = getChildren(outputContainer)
+
+      outputChildren.forEach((child) => {
+        outputContainer.removeChild(child)
+      })
+      
+      inputChildren.forEach((child) => {
+        child.classList.remove('active-child')
+      })
+
+      if (direction === 'prev') {
+        newActiveIndex = (activeIndex - 1 + inputChildren.length) % inputChildren.length
+        inputChildren[newActiveIndex].classList.add('active-child')
+
+        if (!infiniteLoop && newActiveIndex === inputChildren.length - 1) {
+          inputChildren[newActiveIndex].classList.remove('active-child')
+          inputChildren[0].classList.add('active-child')
+          newActiveIndex = 0
+        }
+
+      } else if (direction === 'next') {
+        newActiveIndex = (activeIndex + 1) % inputChildren.length
+        inputChildren[newActiveIndex].classList.add('active-child')
+        if (!infiniteLoop && newActiveIndex === 0) {
+          inputChildren[newActiveIndex].classList.remove('active-child')
+          inputChildren[inputChildren.length - 1].classList.add('active-child')
+          newActiveIndex = inputChildren.length - 1
+        }
+      }
+
+      const prevIndex = (newActiveIndex - 1 + inputChildren.length) % inputChildren.length 
+      const nextIndex = (newActiveIndex + 1) % inputChildren.length
+
+      outputChildren = [
+        inputChildren[prevIndex].cloneNode(true),
+        inputChildren[newActiveIndex].cloneNode(true),
+        inputChildren[nextIndex].cloneNode(true)
+      ]
+
+      outputChildren.forEach((child) => {
+        outputContainer.appendChild(child)
+      })
+
+      if (showDots) {
+        const dotButtons = Array.from(dotsContainer.children)
+        dotButtons.forEach(dot => dot.classList.remove('active-dot'))
+        dotButtons[newActiveIndex].classList.add('active-dot')
+      }
+
+      setTransitionStyle()
+      handleChangeAnimation()
+
+      const handleChangeAnimation = () => {
+        outputChildren.forEach((child) => {
+          child.style.transform = animationType === 'slide' ? `translate${axis.toUpperCase()}(-100%)` : 'translate(0)'
+          child.style.transition = `transform ${transitionTime}ms ${animationTimingFunction}`
+        })
+      }
+    }
+
+    if (showArrows) {
+      leftArrow.addEventListener('click', () => moveToSibling('prev'))
+      rightArrow.addEventListener('click', () => moveToSibling('next'))
+    }
+
+    if (useKeyboardArrows) {
+      document.addEventListener('keydown', (e) => {
+        if (e.key === 'ArrowLeft') {
+          moveToSibling('prev')
+        } else if (e.key === 'ArrowRight') {
+          moveToSibling('next')
+        }
+      })
+    }
+
+    if (showDots) {
+      const dots = document.getElementById('dots')
+      const inputChildren = getChildren(inputContainer)
+
+      inputChildren.forEach((child, index) => {
+        const dot = document.createElement('button')
+        dot.id = `dot-${index}`
+        dot.classList.add('dot')
+        dot.addEventListener('click', () => {
+          inputChildren.forEach((child) => {
+            child.classList.remove('active-child')
+          })
+          inputChildren[index].classList.add('active-child')
+          moveToSibling('next')
+          moveToSibling('prev')
+        })
+        dots.appendChild(dot)
+      })
+    }
+
+    initializeChildren()
+    moveToSibling('next')
+    moveToSibling('prev')
+
+    if (autoPlay) {
+      setInterval(() => {
+        moveToSibling('next')
+      }, interval)
+    }
+  })
+</script>

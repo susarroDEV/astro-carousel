@@ -1,0 +1,13 @@
+#arrows {
+  display: flex;
+  align-items: center;
+  width: 100%;
+}
+
+#arrows button {
+  display: flex;
+  justify-content: center;
+  align-items: center;
+  width: 100px;
+  color: violet;
+}
